@@ -4,5 +4,5 @@ import 'package:task_manager_app/features/authentication/login/domain/entites/lo
 import 'package:task_manager_app/features/authentication/login/domain/entites/login_response_entity.dart';
 
  abstract interface class LoginBaseRepo{
-  Future<Result<LoginResponseEntity,Failure>>userLogin({required LoginRequestEntity requsetEntity });
+  Future<Result<LoginResponseEntity,Failure>>userLogin({required LoginRequestEntity requestEntity });
 }

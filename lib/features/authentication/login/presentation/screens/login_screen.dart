@@ -13,7 +13,7 @@ class LoginScreen extends StatelessWidget {
     return BlocProvider<LoginBloc>(
       create: (context) => LoginBloc(di<UserLoginUseCase>()),
       child: Scaffold(
-        body: BlocBuilder(
+        body: BlocBuilder<LoginBloc, LoginState>(
           builder: (BuildContext context, state) {
             return ElevatedButton(
                 onPressed: () => context.read<LoginBloc>().add(
