@@ -15,6 +15,6 @@ class UserLoginUseCase
 
   @override
   Future<Result<LoginResponseEntity, Failure>> call(LoginRequestEntity params) {
-    return _loginBaseRepo.userLogin(requsetEntity: params);
+    return _loginBaseRepo.userLogin(requestEntity: params);
   }
 }
