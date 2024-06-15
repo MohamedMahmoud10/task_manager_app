@@ -16,9 +16,9 @@ class CustomTextTheme {
         fontFamily: fontFamily,
       ),
       titleMedium: TextStyle(
-        fontSize: ScreenUtil().setSp(24),
-        color: AppColors.blueBlack,
-        fontWeight: AppDimensions.semiBold,
+        fontSize: ScreenUtil().setSp(16),
+        color: AppColors.white,
+        fontWeight: AppDimensions.regular,
         fontFamily: fontFamily,
       ),
       titleSmall: TextStyle(

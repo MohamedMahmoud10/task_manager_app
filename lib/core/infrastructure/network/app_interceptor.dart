@@ -12,7 +12,7 @@ class AppInterceptors extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
     debugPrint(
       'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
     );
@@ -20,7 +20,7 @@ class AppInterceptors extends Interceptor {
   }
 
   @override
-  Future onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<dynamic> onError(DioException err, ErrorInterceptorHandler handler) async {
     debugPrint(
       'ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}',
     );

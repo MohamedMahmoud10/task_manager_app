@@ -2,35 +2,35 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:injectable/injectable.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:task_manager_app/core/config/app_constant_strings.dart';
 import 'package:task_manager_app/core/di/index.dart';
 import 'package:task_manager_app/core/error_handling/index.dart';
 import 'package:task_manager_app/core/infrastructure/network/api_consumer.dart';
 import 'package:task_manager_app/core/infrastructure/network/app_interceptor.dart';
 import 'package:task_manager_app/core/infrastructure/network/status_code.dart';
+import 'package:task_manager_app/core/utils/app_logger.dart';
 
 @LazySingleton(as: ApiConsumer)
 class DioConsumer implements ApiConsumer {
   final Dio client;
 
   DioConsumer({required this.client}) {
-    client.options
-      ..followRedirects = false
-      ..receiveDataWhenStatusError = true
-      ..responseType = ResponseType.json;
-    // ..validateStatus = (status) => status! < StatusCode.internalServerError;
+client.options.baseUrl='${dotenv.get(AppConstantStrings.baseUrl)}';
     client.interceptors.add(di<AppInterceptors>());
     if (kDebugMode) {
       client.interceptors.add(
         PrettyDioLogger(
-            requestHeader: true,
-            requestBody: true,
-            responseBody: true,
-            responseHeader: false,
-            error: true,
-            compact: true,
-            maxWidth: 90),
+          requestHeader: true,
+          requestBody: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+          compact: true,
+          maxWidth: 90,
+        ),
       );
     }
   }
@@ -41,13 +41,14 @@ class DioConsumer implements ApiConsumer {
     Map<String, dynamic>? queryParameters,
     Map<String, String>? headers,
   }) async {
-    // try {
-    client.options.headers = headers;
-    final response = await client.get(path, queryParameters: queryParameters);
-    return handelResponseAsJson(response);
-    // } on DioException catch (error) {
-    //   handleDioError(error);
-    // }
+    try {
+      client.options.headers = headers;
+      final response = await client.get<dynamic>(path, queryParameters: queryParameters);
+      return handleResponseAsJson(response);
+    } on DioException catch (error) {
+      AppLogger().error('Error in GET request: $error');
+      throw DioHandlerExc.handle(error);
+    }
   }
 
   @override
@@ -57,10 +58,15 @@ class DioConsumer implements ApiConsumer {
     Object? body,
     Map<String, String>? headers,
   }) async {
-    client.options.headers = headers;
-    final response =
-        await client.post(path, queryParameters: queryParameters, data: body);
-    return handelResponseAsJson(response);
+    try {
+      client.options.headers = headers;
+      final response =
+      await client.post<dynamic>(path, queryParameters: queryParameters, data: body);
+      return handleResponseAsJson(response);
+    } on DioException catch (error) {
+      AppLogger().error('Error in POST request: $error');
+      throw DioHandlerExc.handle(error);
+    }
   }
 
   @override
@@ -70,15 +76,15 @@ class DioConsumer implements ApiConsumer {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
   }) async {
-    // try {
-    client.options.headers = headers;
-
-    final response =
-        await client.put(path, queryParameters: queryParameters, data: body);
-    return handelResponseAsJson(response);
-    // } on DioException catch (error) {
-    //   handleDioError(error);
-    // }
+    try {
+      client.options.headers = headers;
+      final response =
+      await client.put<dynamic>(path, queryParameters: queryParameters, data: body);
+      return handleResponseAsJson(response);
+    } on DioException catch (error) {
+      AppLogger().error('Error in PUT request: $error');
+      throw DioHandlerExc.handle(error);
+    }
   }
 
   @override
@@ -88,25 +94,27 @@ class DioConsumer implements ApiConsumer {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
   }) async {
-    client.options.headers = headers;
-
-    final response =
-        await client.delete(path, queryParameters: queryParameters, data: body);
-    return handelResponseAsJson(response);
+    try {
+      client.options.headers = headers;
+      final response = await client.delete<dynamic>(
+          path, queryParameters: queryParameters, data: body);
+      return handleResponseAsJson(response);
+    } on DioException catch (error) {
+      AppLogger().error('Error in DELETE request: $error');
+      throw DioHandlerExc.handle(error);
+    }
   }
 }
 
-dynamic handelResponseAsJson(Response<dynamic> response) {
+dynamic handleResponseAsJson(Response<dynamic> response) {
   if (response.data is String) {
-    // Parse the JSON string into a map
     return jsonDecode(response.data.toString());
   } else {
-    // If it's already a map, just return it
     return response.data as Map<String, dynamic>;
   }
 }
 
-class DioHandlerExc implements Exception{
+class DioHandlerExc implements Exception {
   final Failure failure;
 
   DioHandlerExc.handle(dynamic error) : failure = _handleError(error);
@@ -114,6 +122,9 @@ class DioHandlerExc implements Exception{
   static Failure _handleError(dynamic error) {
     if (error is DioException) {
       return _handleDioError(error);
+    } else if (error is DioHandlerExc) {
+      // Ensure nested DioHandlerExc error messages are not lost
+      return error.failure;
     } else {
       return ServerFailure("Something went wrong");
     }
@@ -124,14 +135,20 @@ class DioHandlerExc implements Exception{
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+        return ServerFailure("Connection timeout");
       case DioExceptionType.badResponse:
         final statusCode = exception.response?.statusCode;
+        final message = exception.response?.data['message'] as String? ?? 'Unknown error';
+        AppLogger().error('Error message: $message');
         switch (statusCode) {
           case StatusCode.badRequest:
-            return ServerFailure(exception.response?.data['message'] as String);
+            return ServerFailure(message);
           case StatusCode.unauthorized:
+            return ServerFailure('Unauthorized');
           case StatusCode.forbidden:
+            return ServerFailure('Forbidden');
           case StatusCode.notFound:
+            return ServerFailure('Not Found');
           case StatusCode.internalServerError:
             return ServerFailure('Internal Server Error');
           default:

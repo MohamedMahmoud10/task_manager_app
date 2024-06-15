@@ -31,6 +31,7 @@ class ConstIcons{
   static const IconData phone=Icons.phone;
   static const IconData up_right_arrow = IconData(0xe800, fontFamily: _kFontFam, fontPackage: _kFontPkg);
   static const IconData down_right_arrow = IconData(0xe801, fontFamily: _kFontFam, fontPackage: _kFontPkg);
+  static const IconData arrow_down = Icons.keyboard_arrow_down_outlined;
   static const IconData add = Icons.add;
 
 }
